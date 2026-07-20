@@ -1,1 +1,6 @@
-# integracao-spring-boot-rocketseat-tarefas
+# Integração
+
+## Requisitos 
+
+* Java 17+
+* Maven 
