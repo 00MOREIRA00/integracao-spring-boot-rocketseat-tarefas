@@ -30,5 +30,8 @@ build/
 !**/src/test/**/build/
 /target
 
+### H2 database files ###
+/data/
+
 ### VS Code ###
 .vscode/
