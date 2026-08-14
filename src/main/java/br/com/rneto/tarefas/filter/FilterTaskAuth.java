@@ -1,9 +1,12 @@
 package br.com.rneto.tarefas.filter;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import br.com.rneto.tarefas.user.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -13,6 +16,9 @@ import java.util.Base64;
 @Component
 public class FilterTaskAuth extends OncePerRequestFilter {
 
+    @Autowired
+    private UserRepository userRepository;
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -20,31 +26,39 @@ public class FilterTaskAuth extends OncePerRequestFilter {
             FilterChain chain
     ) throws IOException, ServletException {
 
-        var authorization = request.getHeader("Authorization");
+        var servletPath = request.getServletPath();
 
-        var authEncoded = authorization.substring("Basic".length()).trim();
+        if (servletPath.equals("/tasks/")) {
+            var authorization = request.getHeader("Authorization");
 
-        byte[] authDecoded =  Base64.getDecoder().decode(authEncoded);
+            var authEncoded = authorization.substring("Basic".length()).trim();
 
-        var authString = new String(authDecoded);
+            byte[] authDecoded =  Base64.getDecoder().decode(authEncoded);
 
-        String[] credentials = authString.split(":");
-        String username = credentials[0];
-        String password = credentials[1];
+            var authString = new String(authDecoded);
 
-        System.out.println(password);
+            String[] credentials = authString.split(":");
+            String username = credentials[0];
+            String password = credentials[1];
 
+            var user = this.userRepository.findByUsername(username);
+            if(user == null){
+                response.sendError(401);
+            } else {
+                var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
 
-        for (int i = 0; i < authDecoded.length; i++) {
-            System.out.println("authDecoded[" + i + "] = " + authDecoded[i]);
+                System.out.println(user.getPassword());
+
+                if(passwordVerify.verified) {
+                    request.setAttribute("idUser", user.getId());
+                    chain.doFilter(request, response);
+                } else {
+                    response.sendError(401);
+                }
+            }
+        } else {
+            chain.doFilter(request, response);
         }
-
-        // Validar usuário
-
-        // Validar senha
-
-        System.out.println("Chegou no filtro de autenticação");
-        chain.doFilter(request, response);
     }
 
 }
