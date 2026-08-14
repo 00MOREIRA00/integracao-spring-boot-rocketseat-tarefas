@@ -27,8 +27,12 @@ public class TaskController {
 
             // 10/11/2026 - Current
             // 10/10/2026 - Start
-            if (currentDate.isAfter(taskModel.getStartAt())){
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("A data de início da tarefa não pode ser anterior à data atual.");
+            if (currentDate.isAfter(taskModel.getStartAt()) || currentDate.isAfter(taskModel.getEndAt())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("A data de início e/ou de termino da tarefa não pode ser anterior à data atual.");
+            }
+
+            if (taskModel.getStartAt().isAfter(taskModel.getEndAt())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("A data de início não pode ser posterior à data de término da tarefa.");
             }
 
             var task = this.taskRepository.save(taskModel);
