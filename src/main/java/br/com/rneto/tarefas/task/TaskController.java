@@ -61,8 +61,6 @@ public class TaskController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuário não tem permissão de altyerar essa task");
             }
 
-
-
             Utils.copyNonNullProperties(taskModel, task);
 
             var taskUpdated = this.taskRepository.save(task);
