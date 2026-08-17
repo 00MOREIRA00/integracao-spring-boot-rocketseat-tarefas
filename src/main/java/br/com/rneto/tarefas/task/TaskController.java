@@ -2,7 +2,6 @@ package br.com.rneto.tarefas.task;
 
 import br.com.rneto.tarefas.utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
-import jdk.jshell.execution.Util;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +19,7 @@ public class TaskController {
         private TaskRepository taskRepository;
 
         @PostMapping("/")
-        public ResponseEntity create(@RequestBody TaskModel taskModel, HttpServletRequest request) {
+        public ResponseEntity<?> create(@RequestBody TaskModel taskModel, HttpServletRequest request) {
             var idUser = request.getAttribute("idUser");
             taskModel.setIdUser((UUID) idUser);
 
@@ -29,7 +28,7 @@ public class TaskController {
             // 10/11/2026 - Current
             // 10/10/2026 - Start
             if (currentDate.isAfter(taskModel.getStartAt()) || currentDate.isAfter(taskModel.getEndAt())) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("A data de início e/ou de termino da tarefa não pode ser anterior à data atual.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("A data de início e/ou de término da tarefa não pode ser anterior à data atual.");
             }
 
             if (taskModel.getStartAt().isAfter(taskModel.getEndAt())) {
@@ -48,17 +47,17 @@ public class TaskController {
         }
 
         @PutMapping("/{id}")
-        public ResponseEntity update(@RequestBody TaskModel taskModel, @PathVariable UUID id, HttpServletRequest request) {
+        public ResponseEntity<?> update(@RequestBody TaskModel taskModel, @PathVariable UUID id, HttpServletRequest request) {
             var idUser = request.getAttribute("idUser");
 
             var task = this.taskRepository.findById(id).orElse(null);
 
             if (task == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tarefa não encontrada");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tarefa não encontrada");
             }
 
-            if (!taskModel.getIdUser().equals(idUser)){
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuário não tem permissão de altyerar essa task");
+            if (!task.getIdUser().equals(idUser)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Usuário não tem permissão para alterar esta tarefa");
             }
 
             Utils.copyNonNullProperties(taskModel, task);

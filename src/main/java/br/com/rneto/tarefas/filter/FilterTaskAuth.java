@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 @Component
@@ -28,33 +29,44 @@ public class FilterTaskAuth extends OncePerRequestFilter {
 
         var servletPath = request.getServletPath();
 
-        if (servletPath.startsWith("/tasks/")) {
+        if (servletPath.startsWith("/tasks")) {
             var authorization = request.getHeader("Authorization");
 
-            var authEncoded = authorization.substring("Basic".length()).trim();
+            if (authorization == null || !authorization.startsWith("Basic ")) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
 
-            byte[] authDecoded =  Base64.getDecoder().decode(authEncoded);
+            try {
+                var authEncoded = authorization.substring("Basic ".length()).trim();
+                byte[] authDecoded = Base64.getDecoder().decode(authEncoded);
+                var authString = new String(authDecoded, StandardCharsets.UTF_8);
+                String[] credentials = authString.split(":", 2);
 
-            var authString = new String(authDecoded);
+                if (credentials.length != 2) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
 
-            String[] credentials = authString.split(":");
-            String username = credentials[0];
-            String password = credentials[1];
+                String username = credentials[0];
+                String password = credentials[1];
 
-            var user = this.userRepository.findByUsername(username);
-            if(user == null){
-                response.sendError(401);
-            } else {
+                var user = this.userRepository.findByUsername(username);
+                if (user == null) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+
                 var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
 
-                System.out.println(user.getPassword());
-
-                if(passwordVerify.verified) {
+                if (passwordVerify.verified) {
                     request.setAttribute("idUser", user.getId());
                     chain.doFilter(request, response);
                 } else {
-                    response.sendError(401);
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                 }
+            } catch (IllegalArgumentException exception) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } else {
             chain.doFilter(request, response);

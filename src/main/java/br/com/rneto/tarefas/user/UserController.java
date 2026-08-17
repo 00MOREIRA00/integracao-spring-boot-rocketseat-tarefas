@@ -22,21 +22,17 @@ public class UserController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity createUser(@RequestBody UserModel userModel) {
+    public ResponseEntity<?> createUser(@RequestBody UserModel userModel) {
         var user = this.userRepository.findByUsername(userModel.getUsername());
-        System.out.println(userModel.getUsername());
         if (user != null) {
-            //Mensagem de Erro e Status Code
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuário já cadastrado!");
         }
-
-        System.out.println("Recebido: " + userModel);
 
         var passwordHash = BCrypt.withDefaults().hashToString(12, userModel.getPassword().toCharArray());
 
         userModel.setPassword(passwordHash);
 
-        var userCreated = userRepository.save(userModel);
+        userRepository.save(userModel);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
